@@ -6,6 +6,7 @@ spec:
   workspaces:
     - name: pipeline-workspace
   params:
+    - name: app-name
     - name: build-image
     - name: repo-url
     - name: branch
@@ -25,10 +26,10 @@ spec:
       taskRef:
         name: git-clone
       params:
-      - name: url
-        value: $(params.repo-url)
-      - name: revision
-        value: $(params.branch)
+        - name: url
+          value: $(params.repo-url)
+        - name: revision
+          value: $(params.branch)
       runAfter:
         - init      
 
@@ -39,10 +40,10 @@ spec:
       taskRef:
         name: flake8
       params:
-      - name: image
-        value: "python:3.9-slim"
-      - name: args
-        value: ["--count","--max-complexity=10","--max-line-length=127","--statistics"]
+        - name: image
+          value: "python:3.9-slim"
+        - name: args
+          value: ["--count","--max-complexity=10","--max-line-length=127","--statistics"]
       runAfter:
         - clone
 
@@ -53,8 +54,8 @@ spec:
       taskRef:
         name: nose
       params:
-      - name: args
-        value: "-v --with-spec --spec-color"
+        - name: args
+          value: "-v --with-spec --spec-color"
       runAfter:
         - lint
 
@@ -66,16 +67,17 @@ spec:
         name: buildah
         kind: ClusterTask
       params:
-      - name: IMAGE
-        value: "$(params.build-image)"
+        - name: IMAGE
+          value: "$(params.build-image)"
       runAfter:
         - tests
 
     - name: deploy
       taskRef:
-        name: echo
+        name: openshift-client
+        kind: ClusterTask
       params:
-      - name: message
-        value: "Deploying $(params.branch) branch of $(params.repo-url) ..."
+        - name: SCRIPT
+          value: "oc create deploy $(params.app-name) --image=$(params.build-image)"
       runAfter:
         - build
